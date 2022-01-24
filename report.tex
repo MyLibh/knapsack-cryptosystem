@@ -1,0 +1,128 @@
+\documentclass{article}
+\usepackage[T2A,T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[russian]{babel}
+\usepackage[left=1cm,right=1cm,top=2cm,bottom=2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\graphicspath{{../data/images/}}
+\usepackage{listings}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{csvsimple}
+\usepackage{adjustbox}
+\usepackage{verbatim}
+\usepackage{hyperref}
+
+\title{Параллельное программирование\\}
+\author{ИИКС ИБ\\Б19-505\\Голигузов Алексей}
+\date
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+
+\newpage
+\section{Исследование}
+Реализация системы шифрования, основанной на идее, предложенной в \href{https://www.fq.math.ca/Papers1/50-2/HamlinWebb.pdf}{статье}.
+
+\newpage
+\section{Алгоритм}
+Базовая часть алгоритма состоит из следующих частей:
+\begin{enumerate}
+    \item Генерация последовательности по сигнатуре реккуренты; в качестве базы
+    реккуренты берется набор из n единиц(1), где n - длина сигнатуры
+    \item Генерация базовых подстрок(блоков) по сигнатуре
+    \item Обновление множества базовых подстрок за счет полной параллельной
+    проекции их на строку, длиной, равной размеру блока
+    \item Генерация карты представления чисел
+\end{enumerate}
+
+Шифрование:
+\begin{enumerate}
+    \item Каждый элемент во входном тексте представляеся в виде суммы элементов(жадным алгоритмом)
+    карты
+    \item Данное представление упаковывается в конечное представление - строку, длиной, равной размеру блока
+\end{enumerate}
+
+Дешифрование:
+\begin{enumerate}
+    \item Входной текст делится на куски, длиной в размер блока
+    \item Каждый кусок скалярно перемножается с посчитанной рекурентой, что дает значение исходного символа
+\end{enumerate}
+
+Методика распараллеливания заключается в том, что мы можем обрабатывать каждый символ(при шифровании) 
+и каждый блок(при дешифровании) независимо. Также некоторые внутренние операции также могут быть выполнены
+параллельно(скалярное перемножение, упаковка и другие).
+
+\newpage
+\section{Аппаратные характеристики тестового стенда}
+\verbatiminput{system_info.txt}
+
+\newpage
+\section{Программная конфигурация}
+Использованный язык программирования: C++\\
+Компилятор: g++ (10.3.0)\\
+Распараллеливание: OpenMP (201511)\\
+Собиралось с флагами: -fopenmp -O3 -std=c++20
+
+\newpage
+\section{Эксперимент}
+Были проведены эксперименты для 5 различных размеров блока(16, 32, 64, 128, 256).
+Каждый эксперимент состоял из 10000 тестов, каждый тест для каждого кол-ва потоков(от 1 до 16).
+Внутри каждого теста сигнатура и входные данные генерировалиль случайно.
+В качестве сигнатуры реккуренты использовалась рандомно сгенерированная валидная сигнатура длины 2,
+величины коеффициентов - целые неотрицательные числа, не превышающие 9.
+Длина входного текста - фиксированная, 512 символов.
+
+\newpage
+\section{Графики}
+\begin{minipage}{0.48\linewidth}
+    \includegraphics[width=\linewidth]{enc_time.png}
+    \captionof{figure}{Время}
+\end{minipage}
+\hfill
+\begin{minipage}{0.49\linewidth}
+    \includegraphics[width=\linewidth]{dec_time.png}
+    \captionof{figure}{Время}
+\end{minipage}
+
+\begin{minipage}{0.48\linewidth}
+    \includegraphics[width=\linewidth]{enc_accel.png}
+    \captionof{figure}{Ускорение}
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\linewidth}
+    \includegraphics[width=\linewidth]{dec_accel.png}
+    \captionof{figure}{Ускорение}
+\end{minipage}
+
+\begin{minipage}{0.49\linewidth}
+    \includegraphics[width=\linewidth]{enc_eff.png}
+    \captionof{figure}{Эффективность}
+\end{minipage}
+\hfill
+\begin{minipage}{0.49\linewidth}
+    \includegraphics[width=\linewidth]{dec_eff.png}
+    \captionof{figure}{Эффективность}
+\end{minipage}
+
+\newpage
+\section{Заключение}
+Получения реализация системы, в основе которой лежит идея из статьи. На основаниях графиков, можно сделать выводы, что
+распараллеленная версия дешифрования была ускорена в 2-3 раза по времени.
+
+Для алгоритма шифрования, при кол-ве потоков > 9 имеем заметное ускорение в 2-3 раза, причем,
+чем больше размер блока, тем больше ускорение.
+
+\newpage
+\section{Приложение 1}
+\lstinputlisting[language=C++]{crypto.cpp}
+
+%\newpage
+%\section{Приложение 1a}
+%\lstinputlisting[language=Python]{graph.py}
+
+
+\end{document}
